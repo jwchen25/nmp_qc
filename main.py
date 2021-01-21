@@ -35,7 +35,7 @@ __email__ = "priba@cvc.uab.cat, adutta@cvc.uab.cat"
 def restricted_float(x, inter):
     x = float(x)
     if x < inter[0] or x > inter[1]:
-        raise argparse.ArgumentTypeError("%r not in range [1e-5, 1e-4]"%(x,))
+        raise argparse.ArgumentTypeError("%r not in range [1e-5, 1e-4]" % (x,))
     return x
 
 
@@ -44,10 +44,13 @@ work_dir = os.getcwd()
 parser = argparse.ArgumentParser(description='Neural message passing')
 
 parser.add_argument('--dataset', default='qm9', help='QM9')
-parser.add_argument('--datasetPath', default=work_dir + '/data/qm9/dsgdb9nsd/', help='dataset path')
-parser.add_argument('--logPath', default=work_dir + '/log/qm9/mpnn/', help='log path')
+parser.add_argument('--datasetPath', default=work_dir +
+                    '/data/qm9/dsgdb9nsd/', help='dataset path')
+parser.add_argument('--logPath', default=work_dir +
+                    '/log/qm9/mpnn/', help='log path')
 parser.add_argument('--plotLr', default=False, help='allow plotting the data')
-parser.add_argument('--plotPath', default=work_dir + '/plot/qm9/mpnn/', help='plot path')
+parser.add_argument('--plotPath', default=work_dir +
+                    '/plot/qm9/mpnn/', help='plot path')
 parser.add_argument('--resume', default=work_dir + 'checkpoint/qm9/mpnn/',
                     help='path to latest checkpoint')
 # Optimization Options
@@ -69,7 +72,8 @@ parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
 parser.add_argument('--log-interval', type=int, default=20, metavar='N',
                     help='How many batches to wait before logging training status')
 # Accelerating
-parser.add_argument('--prefetch', type=int, default=2, help='Pre-fetching threads.')
+parser.add_argument('--prefetch', type=int, default=2,
+                    help='Pre-fetching threads.')
 
 best_er1 = 0
 
@@ -86,7 +90,8 @@ def main():
     root = args.datasetPath
 
     print('Prepare files')
-    files = [f for f in os.listdir(root) if os.path.isfile(os.path.join(root, f))]
+    files = [f for f in os.listdir(
+        root) if os.path.isfile(os.path.join(root, f))]
 
     idx = np.random.permutation(len(files))
     idx = idx.tolist()
@@ -95,9 +100,12 @@ def main():
     test_ids = [files[i] for i in idx[10000:20000]]
     train_ids = [files[i] for i in idx[20000:]]
 
-    data_train = datasets.Qm9(root, train_ids, edge_transform=utils.qm9_edges, e_representation='raw_distance')
-    data_valid = datasets.Qm9(root, valid_ids, edge_transform=utils.qm9_edges, e_representation='raw_distance')
-    data_test = datasets.Qm9(root, test_ids, edge_transform=utils.qm9_edges, e_representation='raw_distance')
+    data_train = datasets.Qm9(
+        root, train_ids, edge_transform=utils.qm9_edges, e_representation='raw_distance')
+    data_valid = datasets.Qm9(
+        root, valid_ids, edge_transform=utils.qm9_edges, e_representation='raw_distance')
+    data_test = datasets.Qm9(
+        root, test_ids, edge_transform=utils.qm9_edges, e_representation='raw_distance')
 
     # Define model and optimizer
     print('Define model')
@@ -106,9 +114,10 @@ def main():
     g, h_t, e = g_tuple
 
     print('\tStatistics')
-    stat_dict = datasets.utils.get_graph_stats(data_valid, ['target_mean', 'target_std'])
+    stat_dict = datasets.utils.get_graph_stats(
+        data_valid, ['target_mean', 'target_std'])
 
-    data_train.set_target_transform(lambda x: datasets.utils.normalize_data(x,stat_dict['target_mean'],
+    data_train.set_target_transform(lambda x: datasets.utils.normalize_data(x, stat_dict['target_mean'],
                                                                             stat_dict['target_std']))
     data_valid.set_target_transform(lambda x: datasets.utils.normalize_data(x, stat_dict['target_mean'],
                                                                             stat_dict['target_std']))
@@ -133,8 +142,9 @@ def main():
     message_size = 73
     n_layers = 3
     l_target = len(l)
-    type ='regression'
-    model = MPNN(in_n, hidden_state_size, message_size, n_layers, l_target, type=type)
+    type = 'regression'
+    model = MPNN(in_n, hidden_state_size, message_size,
+                 n_layers, l_target, type=type)
     del in_n, hidden_state_size, message_size, n_layers, l_target, type
 
     print('Optimizer')
@@ -142,12 +152,14 @@ def main():
 
     criterion = nn.MSELoss()
 
-    evaluation = lambda output, target: torch.mean(torch.abs(output - target) / torch.abs(target))
+    def evaluation(output, target): return torch.mean(
+        torch.abs(output - target) / torch.abs(target))
 
     print('Logger')
     logger = Logger(args.logPath)
 
-    lr_step = (args.lr-args.lr*args.lr_decay)/(args.epochs*args.schedule[1] - args.epochs*args.schedule[0])
+    lr_step = (args.lr-args.lr*args.lr_decay)/(args.epochs *
+                                               args.schedule[1] - args.epochs*args.schedule[0])
 
     # get the best checkpoint if available without training
     if args.resume:
@@ -162,7 +174,8 @@ def main():
             best_acc1 = checkpoint['best_er1']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
-            print("=> loaded best model '{}' (epoch {})".format(best_model_file, checkpoint['epoch']))
+            print("=> loaded best model '{}' (epoch {})".format(
+                best_model_file, checkpoint['epoch']))
         else:
             print("=> no best model found at '{}'".format(best_model_file))
 
@@ -181,7 +194,8 @@ def main():
                 param_group['lr'] = args.lr
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, evaluation, logger)
+        train(train_loader, model, criterion,
+              optimizer, epoch, evaluation, logger)
 
         # evaluate on test set
         er1 = validate(valid_loader, model, criterion, evaluation, logger)
@@ -209,7 +223,8 @@ def main():
             if args.cuda:
                 model.cuda()
             optimizer.load_state_dict(checkpoint['optimizer'])
-            print("=> loaded best model '{}' (epoch {})".format(best_model_file, checkpoint['epoch']))
+            print("=> loaded best model '{}' (epoch {})".format(
+                best_model_file, checkpoint['epoch']))
         else:
             print("=> no best model found at '{}'".format(best_model_file))
 
@@ -232,7 +247,8 @@ def train(train_loader, model, criterion, optimizer, epoch, evaluation, logger):
         # Prepare input data
         if args.cuda:
             g, h, e, target = g.cuda(), h.cuda(), e.cuda(), target.cuda()
-        g, h, e, target = Variable(g), Variable(h), Variable(e), Variable(target)
+        g, h, e, target = Variable(g), Variable(
+            h), Variable(e), Variable(target)
 
         # Measure data loading time
         data_time.update(time.time() - end)
@@ -264,7 +280,7 @@ def train(train_loader, model, criterion, optimizer, epoch, evaluation, logger):
                   'Error Ratio {err.val:.4f} ({err.avg:.4f})'
                   .format(epoch, i, len(train_loader), batch_time=batch_time,
                           data_time=data_time, loss=losses, err=error_ratio))
-                          
+
     logger.log_value('train_epoch_loss', losses.avg)
     logger.log_value('train_epoch_error_ratio', error_ratio.avg)
 
@@ -286,7 +302,8 @@ def validate(val_loader, model, criterion, evaluation, logger=None):
         # Prepare input data
         if args.cuda:
             g, h, e, target = g.cuda(), h.cuda(), e.cuda(), target.cuda()
-        g, h, e, target = Variable(g), Variable(h), Variable(e), Variable(target)
+        g, h, e, target = Variable(g), Variable(
+            h), Variable(e), Variable(target)
 
         # Compute output
         output = model(g, h, e)
@@ -300,7 +317,7 @@ def validate(val_loader, model, criterion, evaluation, logger=None):
         end = time.time()
 
         if i % args.log_interval == 0 and i > 0:
-            
+
             print('Test: [{0}/{1}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -317,6 +334,6 @@ def validate(val_loader, model, criterion, evaluation, logger=None):
 
     return error_ratio.avg
 
-    
+
 if __name__ == '__main__':
     main()
